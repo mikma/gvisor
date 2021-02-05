@@ -3798,12 +3798,17 @@ func TestAddRoute(t *testing.T) {
 
 	s := stack.New(stack.Options{})
 
-	subnet1, err := tcpip.NewSubnet("\x00", "\x00")
+	subnet1, err := tcpip.NewSubnet("\x01", "\xff")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	subnet2, err := tcpip.NewSubnet("\x01", "\xff")
+	subnet2, err := tcpip.NewSubnet("\x70", "\xf0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	subnet3, err := tcpip.NewSubnet("\x00", "\x00")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -3811,10 +3816,11 @@ func TestAddRoute(t *testing.T) {
 	expected := []tcpip.Route{
 		{Destination: subnet1, Gateway: "\x00", NIC: 1},
 		{Destination: subnet2, Gateway: "\x00", NIC: 1},
+		{Destination: subnet3, Gateway: "\x00", NIC: 1},
 	}
 
 	// Initialize the route table with one route.
-	s.SetRouteTable([]tcpip.Route{expected[0]})
+	s.SetRouteTable([]tcpip.Route{expected[2], expected[0]})
 
 	// Add another route.
 	s.AddRoute(expected[1])
