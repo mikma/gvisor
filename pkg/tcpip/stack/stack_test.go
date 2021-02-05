@@ -3803,7 +3803,7 @@ func TestAddRoute(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	subnet2, err := tcpip.NewSubnet("\x01", "\x01")
+	subnet2, err := tcpip.NewSubnet("\x01", "\xff")
 	if err != nil {
 		t.Fatal(err)
 	}
