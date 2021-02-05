@@ -24,6 +24,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	mathrand "math/rand"
+	"sort"
 	"sync/atomic"
 	"time"
 
@@ -390,6 +391,10 @@ type Stack struct {
 		mu struct {
 			sync.RWMutex
 
+			// table is in descending sort order based on
+			// the prefix length. Finding a route in the
+			// table will result in Longest prefix match
+			// as is expected.
 			table []tcpip.Route
 		}
 	}
@@ -838,6 +843,10 @@ func (s *Stack) Forwarding(protocolNum tcpip.NetworkProtocolNumber) bool {
 func (s *Stack) SetRouteTable(table []tcpip.Route) {
 	s.route.mu.Lock()
 	defer s.route.mu.Unlock()
+	// Sort route table in descending order based on the prefix length
+	sort.Slice(table, func(i, j int) bool {
+		return table[i].Destination.Prefix() > table[j].Destination.Prefix()
+	})
 	s.route.mu.table = table
 }
 
@@ -850,9 +859,16 @@ func (s *Stack) GetRouteTable() []tcpip.Route {
 
 // AddRoute appends a route to the route table.
 func (s *Stack) AddRoute(route tcpip.Route) {
+	prefix := route.Destination.Prefix()
 	s.route.mu.Lock()
 	defer s.route.mu.Unlock()
-	s.route.mu.table = append(s.route.mu.table, route)
+	// Sort routes in descending order based on the prefix length
+	i := sort.Search(len(s.route.mu.table), func(j int) bool {
+		return s.route.mu.table[j].Destination.Prefix() <= prefix
+	})
+	s.route.mu.table = append(s.route.mu.table, tcpip.Route{})
+	copy(s.route.mu.table[i+1:], s.route.mu.table[i:])
+	s.route.mu.table[i] = route
 }
 
 // RemoveRoutes removes matching routes from the route table.
